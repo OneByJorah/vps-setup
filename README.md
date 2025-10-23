@@ -1,57 +1,93 @@
-AdGuard + Tailscale + WireGuard Setup Script
+🛰️ AdGuard + Tailscale + WireGuard Automated VPS Setup
 
-A simple, secure, and automated installer that turns any Ubuntu 22.04 VPS into a private DNS + VPN hub, accessible only through Tailscale.
+Author: OneByJorah
 
-🧩 Overview
+OS Target: Ubuntu 22.04 LTS
+Category: Network Security / Self-Hosting / VPN Automation
 
-This script automatically installs and configures:
+🔧 Overview
 
-Tailscale → private networking and secure remote access
+A fully automated, production-grade installer designed to transform any Ubuntu VPS into a secure, private DNS + VPN gateway, powered by:
 
-WireGuard → fast VPN service
+🧩 AdGuard Home — Ad-blocking DNS resolver
 
-AdGuard Home → DNS-level ad blocking and filtering
+🔐 Tailscale — Zero-config secure network overlay
 
-UFW → firewall with strict rules allowing only SSH, Tailscale, and WireGuard
+⚡ WireGuard — High-speed, lightweight VPN tunnel
 
-All services are bound to your Tailscale IP for maximum privacy.
+🛡️ UFW Firewall — Hardened perimeter protection
 
-⚙️ Installation
+This stack is ideal for personal, family, or team networks who value privacy-first architecture and no-cloud dependency.
 
-Run this one-line installer as root or with sudo:
+🧠 Core Features
+Feature	Description
+🧩 AdGuard Home	Local DNS filtering and ad blocking, running on your Tailscale IP only.
+🔐 Tailscale Integration	Instantly access your VPS via encrypted Tailscale tunnel — no port forwarding required.
+⚡ WireGuard Ready	WireGuard preinstalled and systemd-enabled; add clients in seconds.
+🛡️ Firewall Protection	Preconfigured UFW rules allowing only SSH, WireGuard, and Tailscale traffic.
+🔄 Autostart Services	Tailscale, AdGuard, and WireGuard automatically restart on reboot.
+🧰 Minimal Dependencies	Clean install, zero bloat, fully scriptable infrastructure.
+🚀 Installation
+
+Run this one-line command on a fresh Ubuntu 22.04 VPS:
 
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/OneByJorah/vps-setup/main/adguard-tailscale-wireguard.sh)"
 
-🚀 What Happens
 
-Updates your system
+The script will:
 
-Installs all dependencies
+Update your system packages
 
-Installs and enables Tailscale, WireGuard, and AdGuard Home
+Install Tailscale, WireGuard, and AdGuard Home
 
-Prompts you to log into Tailscale
+Prompt you to authenticate Tailscale
 
-Binds AdGuard Home to your Tailscale IP
+Bind AdGuard to your private Tailscale IP
 
-Configures UFW firewall to secure your server
+Enable firewall and start all services
 
-🧠 Post-Install Setup
-🔹 Access AdGuard Home
+🧩 Network Architecture Diagram
+                ┌────────────────────────────┐
+                │        Internet            │
+                └────────────┬───────────────┘
+                             │
+                      (Encrypted Tunnel)
+                             │
+                  ┌────────────────────┐
+                  │     VPS Server     │
+                  │ Ubuntu 22.04 LTS   │
+                  │                    │
+                  │  ┌──────────────┐  │
+                  │  │  Tailscale   │◄─┼─ Remote Devices
+                  │  └──────────────┘  │
+                  │  ┌──────────────┐  │
+                  │  │ WireGuard VPN│◄─┼─ Manual Clients
+                  │  └──────────────┘  │
+                  │  ┌──────────────┐  │
+                  │  │ AdGuard Home │  │
+                  │  │ (DNS Filter) │  │
+                  │  └──────────────┘  │
+                  └────────────────────┘
 
-After installation, from another Tailscale-connected device, open:
+⚙️ Configuration Details
+🧱 Firewall (UFW Rules)
+Port	Protocol	Service	Purpose
+22	TCP	SSH	Secure management access
+41641	UDP	Tailscale	Peer connectivity
+51820	UDP	WireGuard	VPN tunnel
+🧩 AdGuard Home Access
 
-http://<tailscale-ip>:3000
+Accessible only through your Tailscale network.
+From any Tailscale-connected device, open:
+
+http://<Tailscale-IP>:3000
 
 
-Follow the on-screen wizard to finish setup manually.
+You’ll complete the AdGuard setup manually (choose your DNS upstreams and filters).
 
-🔹 Configure WireGuard
+🔧 WireGuard Configuration Example
 
-The installer enables WireGuard but leaves configuration up to you.
-Edit /etc/wireguard/wg0.conf to add peers and keys.
-
-Example:
+/etc/wireguard/wg0.conf
 
 [Interface]
 PrivateKey = <server-private-key>
@@ -67,43 +103,60 @@ Start it:
 
 sudo systemctl enable --now wg-quick@wg0
 
-🔹 Firewall Rules (UFW)
+🧰 Testing & Validation
 
-SSH → TCP 22
+Run the following to validate your setup:
 
-Tailscale → UDP 41641
+# Verify Tailscale connection
+tailscale status
 
-WireGuard → UDP 51820
+# Check AdGuard Home service
+sudo systemctl status AdGuardHome
 
-🧾 Useful Commands
-Task	Command
-Check Tailscale status	tailscale status
-Get Tailscale IP	tailscale ip -4
-Restart AdGuard Home	sudo systemctl restart AdGuardHome
-View WireGuard interface	sudo wg show
-Edit WireGuard config	sudo nano /etc/wireguard/wg0.conf
-Reboot server	sudo reboot
-🛡️ Security Tips
+# Test DNS resolution through AdGuard
+dig @$(tailscale ip -4 | head -n1) google.com
 
-Keep your VPS updated: sudo apt update && sudo apt upgrade -y
+# Check WireGuard interface
+sudo wg show
 
-Avoid exposing AdGuard Home publicly
 
-Manage DNS and VPN only through Tailscale for maximum security
+✅ Expected Results
 
-Use strong WireGuard keys and avoid reusing them across devices
+All services show active (running)
 
+DNS queries resolve via AdGuard
+
+WireGuard interface (wg0) is up and listening on UDP 51820
+
+🛡️ Security Best Practices
+
+Disable password SSH login: sudo nano /etc/ssh/sshd_config → PasswordAuthentication no
+
+Keep system updated: sudo apt update && sudo apt upgrade -y
+
+Use Tailscale ACLs to limit access between devices
+
+Store your WireGuard keys securely
+
+🧾 Troubleshooting
+Issue	Fix
+Tailscale not starting	sudo systemctl restart tailscaled
+AdGuard not reachable	Ensure you’re on Tailscale and use tailscale ip -4
+WireGuard interface down	sudo systemctl enable --now wg-quick@wg0
+DNS not resolving	Verify AdGuard “Listening IP” matches your Tailscale IP
 📚 System Requirements
+Resource	Minimum
+OS	Ubuntu 22.04 LTS
+CPU	1 Core
+RAM	512 MB
+Disk	2 GB
+Network	Public IPv4 with outbound internet
+🧑‍💻 Author & Credits
 
-Ubuntu 22.04 LTS (x86_64)
+Created by: OneByJorah
 
-Minimum 512 MB RAM
+Focus: Secure, lightweight, and self-managed infrastructure automation
+License: MIT
+Version: v1.0.0
 
-Root or sudo privileges
-
-Internet access for installation
-
-✨ Author
-
-Created by OneByJorah
-A project focused on secure, simple, and self-hosted infrastructure setups.
+"Privacy and simplicity can coexist — automate your security stack and own your network."
